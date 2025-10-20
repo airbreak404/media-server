@@ -1,0 +1,49 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & temp
+*.log
+*.tmp
+tmp/
+.cache/
+dist/
+build/
+
+# Python (for optional API config script)
+__pycache__/
+*.pyc
+*.pyo
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Docker/Compose
+docker-data/
+.docker/
+docker-compose.override.yml
+
+# Env & secrets (do not commit!)
+.env
+.env.*
+secrets.*
+*.pem
+*.key
+*.crt
+
+# Cloudflared credentials (runtime)
+cloudflared/*.json
+
+# Generated config/state (runtime) — templates will live elsewhere
+config/
+!config/.gitkeep
+
+# If you keep templates, unignore their directory
+!config_templates/
