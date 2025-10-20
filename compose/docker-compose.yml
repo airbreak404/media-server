@@ -1,0 +1,133 @@
+version: '3.8'
+
+networks:
+  media-net:
+    name: media-net
+    driver: bridge
+
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/jellyfin:/config
+      - ${TV_MOUNT:-/mnt/tv}:/media/tv:ro
+      - ${MOVIES_MOUNT:-/mnt/movies}:/media/movies:ro
+    devices:
+      - /dev/dri:/dev/dri  # For hardware acceleration (VAAPI)
+    ports:
+      - "8096:8096"  # Web UI (LAN access)
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/jellyseerr:/app/config
+    ports:
+      - "5055:5055"  # Web UI (LAN access)
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/sonarr:/config
+      - ${TV_MOUNT:-/mnt/tv}:/tv
+      - ${DOWNLOADS_DIR:-/mnt/movies/downloads}:/data/downloads
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/radarr:/config
+      - ${MOVIES_MOUNT:-/mnt/movies}:/movies
+      - ${DOWNLOADS_DIR:-/mnt/movies/downloads}:/data/downloads
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/prowlarr:/config
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  rdtclient:
+    image: rogerfar/rdtclient:latest
+    container_name: rdtclient
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+      - UMASK=${UMASK:-002}
+    volumes:
+      - ./config/rdtclient/db:/data/db
+      - ${DOWNLOADS_DIR:-/mnt/movies/downloads}:/data/downloads
+    ports:
+      - "6500:6500"  # qBittorrent-compatible API (optional LAN access)
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    environment:
+      - TZ=${TZ:-America/Detroit}
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 2 * * *  # Daily at 2 AM
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    command: tunnel --config /etc/cloudflared/config.yml run ${CF_TUNNEL_NAME}
+    environment:
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ${HOME}/cloudflared:/etc/cloudflared:ro
+    networks:
+      - media-net
+    restart: unless-stopped
+    depends_on:
+      - jellyfin
+      - jellyseerr
+      - sonarr
+      - radarr
+      - prowlarr
+      - rdtclient
