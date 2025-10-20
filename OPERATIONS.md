@@ -49,6 +49,7 @@ Comprehensive guide for operating and maintaining your automated Jellyfin media 
    - Run preflight checks
    - Format and mount drives (⚠ DESTRUCTIVE)
    - Install Docker
+   - Install Tailscale for SSH access (optional, controlled by `.env`)
    - Configure Cloudflare Tunnel
    - Start all services
    - Run health checks
@@ -73,6 +74,9 @@ sudo bash scripts/01_format_and_mount_drives.sh --format
 
 # 3. Install Docker
 sudo bash scripts/02_install_docker.sh
+
+# 3b. Install Tailscale (optional, for SSH access)
+sudo bash scripts/02b_install_tailscale.sh
 
 # 4. Configure Cloudflare Tunnel
 bash scripts/03_cloudflared_login_and_tunnel.sh
@@ -157,6 +161,11 @@ docker compose -f compose/docker-compose.yml pull
 - Jellyfin: `http://[PI_IP]:8096`
 - Jellyseerr: `http://[PI_IP]:5055`
 - RdtClient: `http://[PI_IP]:6500`
+
+**Tailscale Access (if installed):**
+- SSH: `ssh pi@[TAILSCALE_IP]` or `ssh pi@[HOSTNAME]`
+- Services: `http://[TAILSCALE_IP]:8096` (works but redundant, use Cloudflare instead)
+- Note: Use `tailscale ip -4` to get your Tailscale IP
 
 ---
 
@@ -569,6 +578,36 @@ sudo reboot
    - Services run as non-root (PUID/PGID 1000)
    - Limited container capabilities
    - Isolated network (media-net)
+
+6. **Tailscale SSH Access (Optional):**
+   - Provides secure SSH access from anywhere
+   - No port forwarding required
+   - End-to-end encrypted
+   - See `docs/TAILSCALE_SETUP.md` for detailed setup
+
+### Tailscale Integration
+
+If you enabled Tailscale during bootstrap (or install separately with `make install-tailscale`):
+
+**Access SSH from anywhere:**
+```bash
+# Find your Tailscale IP
+tailscale ip -4
+
+# SSH via Tailscale
+ssh pi@100.x.x.x
+```
+
+**Important Notes:**
+- Tailscale is configured with `--accept-dns=false` to avoid conflicts
+- Services remain accessible via Cloudflare Tunnel (no change)
+- Use Tailscale for SSH/admin access, Cloudflare for public services
+- See `docs/TAILSCALE_SETUP.md` for troubleshooting
+
+**Quick Install (if skipped during bootstrap):**
+```bash
+make install-tailscale
+```
 
 ### Enabling Cloudflare Access
 

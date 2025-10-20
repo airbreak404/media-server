@@ -183,7 +183,7 @@ fi
 
 # Check 4: Cloudflare Tunnel
 log_info ""
-log_check "[4/4] Checking Cloudflare Tunnel..."
+log_check "[4/5] Checking Cloudflare Tunnel..."
 
 if docker ps --format '{{.Names}}' | grep -q "^cloudflared$"; then
     # Check logs for tunnel status
@@ -197,6 +197,31 @@ if docker ps --format '{{.Names}}' | grep -q "^cloudflared$"; then
     fi
 else
     check_fail "Cloudflare Tunnel container not running"
+fi
+
+# Check 5: Tailscale (optional)
+log_info ""
+log_check "[5/5] Checking Tailscale (optional)..."
+
+if command -v tailscale &>/dev/null; then
+    if tailscale status &>/dev/null 2>&1; then
+        TS_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
+        check_pass "Tailscale connected ($TS_IP)"
+
+        # Verify safe configuration
+        if grep -q "100.100.100.100" /etc/resolv.conf 2>/dev/null; then
+            check_warn "Tailscale DNS enabled (may conflict with Docker)"
+        fi
+
+        DEFAULT_ROUTE=$(ip route show | grep default | head -n1)
+        if echo "$DEFAULT_ROUTE" | grep -q "tailscale0"; then
+            check_warn "Default route via Tailscale (may break Cloudflare Tunnel)"
+        fi
+    else
+        check_warn "Tailscale installed but not connected"
+    fi
+else
+    log_info "Tailscale not installed (optional)"
 fi
 
 # Summary

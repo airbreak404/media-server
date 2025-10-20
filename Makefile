@@ -6,9 +6,10 @@ help: ## Show this help message
 	@echo "Media Server Management Commands"
 	@echo ""
 	@echo "Setup Commands:"
-	@echo "  make preflight     - Run preflight checks"
-	@echo "  make install       - Full installation (requires sudo)"
-	@echo "  make bootstrap     - Complete bootstrap (format drives, install, deploy)"
+	@echo "  make preflight        - Run preflight checks"
+	@echo "  make install          - Full installation (requires sudo)"
+	@echo "  make install-tailscale- Install Tailscale for SSH (optional)"
+	@echo "  make bootstrap        - Complete bootstrap (format drives, install, deploy)"
 	@echo ""
 	@echo "Service Commands:"
 	@echo "  make up            - Start all services"
@@ -44,6 +45,9 @@ bootstrap: ## Complete bootstrap (WARNING: formats drives)
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		sudo bash scripts/01_format_and_mount_drives.sh --format && \
 		sudo bash scripts/02_install_docker.sh && \
+		( [ -f .env ] && source .env && [ "$${INSTALL_TAILSCALE:-true}" = "true" ] && \
+		  sudo bash scripts/02b_install_tailscale.sh || \
+		  echo "Skipping Tailscale installation" ) && \
 		bash scripts/03_cloudflared_login_and_tunnel.sh && \
 		bash scripts/05_compose_up.sh && \
 		bash scripts/07_health_checks.sh; \
@@ -54,6 +58,9 @@ bootstrap: ## Complete bootstrap (WARNING: formats drives)
 
 install: ## Install Docker and dependencies (requires sudo)
 	@sudo bash scripts/02_install_docker.sh
+
+install-tailscale: ## Install Tailscale for secure SSH (optional)
+	@sudo bash scripts/02b_install_tailscale.sh
 
 up: ## Start all services
 	@bash scripts/05_compose_up.sh
