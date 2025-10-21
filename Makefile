@@ -28,6 +28,12 @@ help: ## Show this help message
 	@echo "  make clean         - Stop services (preserve data)"
 	@echo "  make uninstall     - Uninstall (preserve configs)"
 	@echo ""
+	@echo "Phased Deployment:"
+	@echo "  make phase-1       - Foundation (Bazarr, Caddy, Homer)"
+	@echo "  make phase-2       - Monitoring & Alerting"
+	@echo "  make phase-3       - Automation & Backups"
+	@echo "  make show-phases   - Show deployment status"
+	@echo ""
 	@echo "Examples:"
 	@echo "  make logs SVC=jellyfin"
 	@echo "  make restart SVC=sonarr"
@@ -124,3 +130,50 @@ dry-run-all: ## Dry run all scripts
 	@bash scripts/01_format_and_mount_drives.sh --dry-run || true
 	@bash scripts/05_compose_up.sh --dry-run || true
 	@bash scripts/90_backup.sh --dry-run || true
+
+# Phase Deployment System
+.PHONY: phase-1 phase-2 phase-3 verify-phase-1 verify-phase-2 verify-phase-3 rollback-phase-1 rollback-phase-2 rollback-phase-3
+
+phase-1: ## Phase 1: Foundation Services (Bazarr, Caddy, Homer, Performance)
+	@echo "=== Deploying Phase 1: Foundation Services ==="
+	@bash scripts/phase1/install.sh
+
+phase-2: ## Phase 2: Monitoring & Alerting
+	@echo "=== Deploying Phase 2: Monitoring & Alerting ==="
+	@bash scripts/phase2/install.sh
+
+phase-3: ## Phase 3: Automation & Maintenance
+	@echo "=== Deploying Phase 3: Automation & Maintenance ==="
+	@bash scripts/phase3/install.sh
+
+verify-phase-1: ## Verify Phase 1 installation
+	@bash scripts/phase1/verify.sh
+
+verify-phase-2: ## Verify Phase 2 installation
+	@bash scripts/phase2/verify.sh
+
+verify-phase-3: ## Verify Phase 3 installation
+	@bash scripts/phase3/verify.sh
+
+rollback-phase-1: ## Rollback Phase 1 to Phase 0
+	@bash scripts/phase1/rollback.sh
+
+rollback-phase-2: ## Rollback Phase 2
+	@bash scripts/phase2/rollback.sh
+
+rollback-phase-3: ## Rollback Phase 3
+	@bash scripts/phase3/rollback.sh
+
+test-alert: ## Send test notification (Phase 2 required)
+	@bash scripts/phase2/test_alert.sh
+
+show-phases: ## Show deployed phases
+	@echo "=== Deployed Phases ==="
+	@echo -n "Phase 0 (Bootstrap): "
+	@docker ps --format '{{.Names}}' | grep -q jellyfin && echo "✓ Deployed" || echo "✗ Not deployed"
+	@echo -n "Phase 1 (Foundation): "
+	@docker ps --format '{{.Names}}' | grep -q bazarr && echo "✓ Deployed" || echo "✗ Not deployed"
+	@echo -n "Phase 2 (Monitoring): "
+	@crontab -l 2>/dev/null | grep -q health_monitor && echo "✓ Deployed" || echo "✗ Not deployed"
+	@echo -n "Phase 3 (Automation): "
+	@crontab -l 2>/dev/null | grep -q backup_advanced && echo "✓ Deployed" || echo "✗ Not deployed"
