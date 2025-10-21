@@ -47,17 +47,17 @@ WARN_COUNT=0
 FAIL_COUNT=0
 
 check_pass() {
-    ((PASS_COUNT++))
+    PASS_COUNT=$((PASS_COUNT + 1))
     log_info "✓ $*"
 }
 
 check_warn() {
-    ((WARN_COUNT++))
+    WARN_COUNT=$((WARN_COUNT + 1))
     log_warn "⚠ $*"
 }
 
 check_fail() {
-    ((FAIL_COUNT++))
+    FAIL_COUNT=$((FAIL_COUNT + 1))
     log_error "✗ $*"
 }
 
