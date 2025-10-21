@@ -1,0 +1,77 @@
+version: '3.8'
+
+# Phase 1 Services: Foundation Enhancements
+# Adds: Bazarr (subtitles), Caddy (HTTPS), Homer (dashboard)
+#
+# Deploy with: docker compose -f docker-compose.yml -f docker-compose.phase1.yml up -d
+# Or use: make phase-1
+
+services:
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/bazarr:/config
+      - ${TV_MOUNT:-/mnt/tv}:/tv
+      - ${MOVIES_MOUNT:-/mnt/movies}:/movies
+    ports:
+      - "6767:6767"  # Web UI (for direct access)
+    networks:
+      - media-net
+    restart: unless-stopped
+    depends_on:
+      - sonarr
+      - radarr
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    environment:
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "443:443"    # HTTPS
+      - "80:80"      # HTTP (redirects to HTTPS)
+    networks:
+      - media-net
+    restart: unless-stopped
+    depends_on:
+      - jellyfin
+      - jellyseerr
+      - sonarr
+      - radarr
+      - prowlarr
+      - rdtclient
+      - bazarr
+
+  homer:
+    image: b4bz/homer:latest
+    container_name: homer
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Detroit}
+    volumes:
+      - ./config/homer:/www/assets
+    ports:
+      - "8080:8080"  # Dashboard UI
+    networks:
+      - media-net
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+    name: caddy_data
+  caddy_config:
+    name: caddy_config
+
+networks:
+  media-net:
+    external: true

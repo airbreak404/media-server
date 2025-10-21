@@ -1,0 +1,34 @@
+# Cloudflare Tunnel Configuration
+# This file is templated by scripts/03_cloudflared_login_and_tunnel.sh
+# Environment variables are substituted at runtime by the Docker container
+
+tunnel: ${CF_TUNNEL_ID}
+credentials-file: ${CF_TUNNEL_CREDENTIALS}
+
+ingress:
+  # Jellyfin - Media streaming service
+  - hostname: ${JELLYFIN_HOST}
+    service: http://jellyfin:8096
+
+  # Jellyseerr - Media request management
+  - hostname: ${JELLYSEERR_HOST}
+    service: http://jellyseerr:5055
+
+  # Sonarr - TV show management
+  - hostname: ${SONARR_HOST}
+    service: http://sonarr:8989
+
+  # Radarr - Movie management
+  - hostname: ${RADARR_HOST}
+    service: http://radarr:7878
+
+  # Prowlarr - Indexer management
+  - hostname: ${PROWLARR_HOST}
+    service: http://prowlarr:9696
+
+  # RdtClient - Real-Debrid download client (optional external access)
+  - hostname: ${RDT_HOST}
+    service: http://rdtclient:6500
+
+  # Catch-all rule (required as last entry)
+  - service: http_status:404
